@@ -1,0 +1,5 @@
+.schedule-toolbar .toolbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:20px}
+.schedule-toolbar .lock-toggle{display:inline-flex;align-items:center;gap:9px;white-space:nowrap;margin:0;line-height:18px}
+.schedule-toolbar .lock-toggle>span{display:inline-block;flex:0 0 32px;vertical-align:middle}
+.schedule-toolbar .lock-toggle input{width:1px;height:1px;margin:0;pointer-events:none}
+@media(max-width:600px){.schedule-toolbar{align-items:flex-start}.schedule-toolbar .toolbar-actions{align-items:flex-end;gap:12px}.schedule-toolbar .lock-toggle{line-height:18px}}
