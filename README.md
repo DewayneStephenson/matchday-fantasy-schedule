@@ -114,20 +114,25 @@ then redeploy so the new values take effect:
 
 | Variable | Value |
 | --- | --- |
-| `SHARED_LEAGUE_ENABLED` | `true` to enable; `false` to disable |
-| `SHARED_LEAGUE_SLUG` | `my-league` (use letters, numbers, and hyphens) |
-| `SHARED_LEAGUE_ID` | Your ESPN league ID |
-| `SHARED_LEAGUE_YEAR` | Your season, e.g. `2026` |
-| `SHARED_LEAGUE_SWID` | Your SWID cookie, including braces |
-| `SHARED_LEAGUE_ESPN_S2` | Your full ESPN_S2 cookie |
+| `SHARED_LEAGUE` | Your league ID and season, e.g. `123456:2026` |
+| `SHARED_ESPN_COOKIE` | `SWID={your-swid}; espn_s2=your-full-cookie` |
 
-Both cookies are required for a private league; leave both blank for a public
-league. Do not prefix these variables with `VITE_`, put credentials in the URL,
+Only these two variables are needed for a private league. For a public league,
+omit `SHARED_ESPN_COOKIE`. Replace the placeholders with your values. Paste the
+cookie on one line, with a semicolon between SWID and espn_s2; keep the SWID
+braces and do not add quotation marks. Secret/Sensitive values work normally.
+Sharing is enabled automatically when `SHARED_LEAGUE` is set. Set it to `off`
+and redeploy to disable. The season defaults to the current year if omitted.
+
+The compact setup takes precedence over the previous six variables, including
+the old enable switch and slug, so you can delete those old settings. If
+`SHARED_LEAGUE` is absent entirely, the legacy settings still work.
+
+Do not prefix these variables with `VITE_`, put credentials in the URL,
 or commit real values. The server uses them only for the configured league and
 returns league data, never cookie values.
 
-Share `https://YOUR-DOMAIN/league/my-league` (replace the last segment if you
-changed the slug). Anyone with this link can view the league; this is not an
+Share `https://YOUR-DOMAIN/league/my-league`. Anyone with this link can view the league; this is not an
 authenticated page. The main `/` page continues to show the normal setup or the
 visitor's previously saved personal league. Shared-league predictions are saved
 separately in each visitor's browser. Opening the link retrieves current scores;

@@ -1,5 +1,6 @@
 import express from 'express';
 import { pathToFileURL } from 'node:url';
+import { sharedLeagueConfig } from './shared-config.js';
 
 const app = express();
 const port = Number(process.env.PORT || 8787);
@@ -161,22 +162,22 @@ app.post('/api/espn/import', espnRateLimit, importLeague);
 
 app.get('/api/shared', (req, res, next) => {
   res.set('Cache-Control', 'no-store');
-  const slug = process.env.SHARED_LEAGUE_SLUG || 'my-league';
-  if (process.env.SHARED_LEAGUE_ENABLED !== 'true' || req.query.slug !== slug) {
+  const config = sharedLeagueConfig();
+  if (config.error) return res.status(503).json({ error: config.error });
+  if (!config.enabled) {
+    return res.status(503).json({ error: 'Shared league is disabled. Set SHARED_LEAGUE to your league ID and season in Vercel Production settings, then redeploy.' });
+  }
+  if (req.query.slug !== config.slug) {
     return res.status(404).json({ error: 'This shared league is not available.' });
   }
-  if (!process.env.SHARED_LEAGUE_ID || !process.env.SHARED_LEAGUE_YEAR) {
+  if (!config.leagueId || !config.year) {
     return res.status(503).json({ error: 'The owner still needs to configure this shared league.' });
   }
+  res.locals.sharedLeague = config;
   next();
 }, espnRateLimit, (req, res) => {
   // Only the server chooses the league and credentials, never visitor input.
-  return importLeague({ body: {
-    leagueId: process.env.SHARED_LEAGUE_ID,
-    year: process.env.SHARED_LEAGUE_YEAR,
-    swid: process.env.SHARED_LEAGUE_SWID || '',
-    espnS2: process.env.SHARED_LEAGUE_ESPN_S2 || ''
-  } }, res);
+  return importLeague({ body: res.locals.sharedLeague }, res);
 });
 
 app.use((error, _req, res, _next) => {
