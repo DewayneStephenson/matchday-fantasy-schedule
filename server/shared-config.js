@@ -1,4 +1,23 @@
 export function sharedLeagueConfig(env = process.env) {
+  // Separate values override both older formats, without mixing credentials.
+  const separateKeys = ['ESPN_LEAGUE_ID', 'ESPN_SEASON', 'ESPN_SWID', 'ESPN_S2'];
+  if (separateKeys.some(key => env[key] !== undefined)) {
+    const leagueId = (env.ESPN_LEAGUE_ID || '').trim();
+    if (leagueId.toLowerCase() === 'off') return { enabled: false };
+    if (!/^\d{1,15}$/.test(leagueId)) return { error: 'Set ESPN_LEAGUE_ID to the number after leagueId= in your ESPN league URL, then redeploy.' };
+    const season = (env.ESPN_SEASON || '').trim();
+    const year = Number(season);
+    if (!/^\d{4}$/.test(season) || year < 2018 || year > new Date().getFullYear() + 1) {
+      return { error: 'Set ESPN_SEASON to a four-digit season from 2018 through next year, then redeploy.' };
+    }
+    const swid = (env.ESPN_SWID || '').trim();
+    const espnS2 = (env.ESPN_S2 || '').trim();
+    if (Boolean(swid) !== Boolean(espnS2)) return { error: 'Private leagues need both ESPN_SWID and ESPN_S2. Paste each cookie value in its own variable.' };
+    if (swid.length > 100 || espnS2.length > 2000 || /[\r\n;]/.test(swid + espnS2) || /^swid=/i.test(swid) || /^espn_s2=/i.test(espnS2) || /["']/.test(swid + espnS2)) {
+      return { error: 'Paste only the cookie values into ESPN_SWID and ESPN_S2, without names, quotation marks, semicolons, or line breaks.' };
+    }
+    return { enabled: true, slug: 'my-league', leagueId, year, swid, espnS2 };
+  }
   // The compact setup takes precedence over every legacy setting.
   if (env.SHARED_LEAGUE !== undefined) {
     const value = env.SHARED_LEAGUE.trim();

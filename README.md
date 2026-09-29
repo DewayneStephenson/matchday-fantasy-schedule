@@ -114,19 +114,25 @@ then redeploy so the new values take effect:
 
 | Variable | Value |
 | --- | --- |
-| `SHARED_LEAGUE` | Your league ID and season, e.g. `123456:2026` |
-| `SHARED_ESPN_COOKIE` | `SWID={your-swid}; espn_s2=your-full-cookie` |
+| `ESPN_LEAGUE_ID` | Your numeric league ID, e.g. `12345678` |
+| `ESPN_SEASON` | Your season, e.g. `2026` |
+| `ESPN_SWID` | Your SWID value, including its `{}` braces |
+| `ESPN_S2` | Your full espn_s2 cookie value |
 
-Only these two variables are needed for a private league. For a public league,
-omit `SHARED_ESPN_COOKIE`. Replace the placeholders with your values. Paste the
-cookie on one line, with a semicolon between SWID and espn_s2; keep the SWID
-braces and do not add quotation marks. Secret/Sensitive values work normally.
-Sharing is enabled automatically when `SHARED_LEAGUE` is set. Set it to `off`
-and redeploy to disable. The season defaults to the current year if omitted.
+These four variables enable the shared link automatically. No slug or enable
+switch is needed. Paste each cookie value by itself, without `SWID=` or
+`espn_s2=`, quotation marks, or semicolons. Keep the SWID braces. For public
+leagues, leave both cookie values blank. Set `ESPN_LEAGUE_ID` to `off` and
+redeploy to disable sharing.
 
-The compact setup takes precedence over the previous six variables, including
-the old enable switch and slug, so you can delete those old settings. If
-`SHARED_LEAGUE` is absent entirely, the legacy settings still work.
+Config/plain-text and Secret/Sensitive environment variables both work on the
+server. Secret is recommended for the cookies, but is not required by the code.
+Changing the variable type does not fix expired or invalid ESPN credentials.
+
+The four-variable setup takes precedence over both previous setups whenever
+any of these four keys exists. You can delete the old `SHARED_LEAGUE`,
+`SHARED_ESPN_COOKIE`, and `SHARED_LEAGUE_*` variables. Existing configurations
+still work when none of the four new keys exists.
 
 Do not prefix these variables with `VITE_`, put credentials in the URL,
 or commit real values. The server uses them only for the configured league and

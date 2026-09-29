@@ -165,7 +165,7 @@ app.get('/api/shared', (req, res, next) => {
   const config = sharedLeagueConfig();
   if (config.error) return res.status(503).json({ error: config.error });
   if (!config.enabled) {
-    return res.status(503).json({ error: 'Shared league is disabled. Set SHARED_LEAGUE to your league ID and season in Vercel Production settings, then redeploy.' });
+    return res.status(503).json({ error: 'Shared league is disabled. Set ESPN_LEAGUE_ID and ESPN_SEASON in Vercel Production settings, then redeploy.' });
   }
   if (req.query.slug !== config.slug) {
     return res.status(404).json({ error: 'This shared league is not available.' });

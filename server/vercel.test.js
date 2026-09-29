@@ -13,7 +13,7 @@ test('Vercel exports handle health, validation, and ESPN import', async () => {
   const origin = `http://127.0.0.1:${server.address().port}`;
   const originalFetch = globalThis.fetch;
   let espnCalls = 0;
-  const envNames = ['SHARED_LEAGUE', 'SHARED_ESPN_COOKIE', 'SHARED_LEAGUE_ENABLED', 'SHARED_LEAGUE_SLUG', 'SHARED_LEAGUE_ID', 'SHARED_LEAGUE_YEAR', 'SHARED_LEAGUE_SWID', 'SHARED_LEAGUE_ESPN_S2'];
+  const envNames = ['ESPN_LEAGUE_ID', 'ESPN_SEASON', 'ESPN_SWID', 'ESPN_S2', 'SHARED_LEAGUE', 'SHARED_ESPN_COOKIE', 'SHARED_LEAGUE_ENABLED', 'SHARED_LEAGUE_SLUG', 'SHARED_LEAGUE_ID', 'SHARED_LEAGUE_YEAR', 'SHARED_LEAGUE_SWID', 'SHARED_LEAGUE_ESPN_S2'];
   const originalEnv = Object.fromEntries(envNames.map(name => [name, process.env[name]]));
   for (const name of envNames) delete process.env[name];
   globalThis.fetch = async (url, options) => {
@@ -79,6 +79,14 @@ test('Vercel exports handle health, validation, and ESPN import', async () => {
     delete process.env.SHARED_LEAGUE_ID;
     assert.equal((await fetch(`${origin}/api/shared?slug=my-league`)).status, 503);
     assert.equal(espnCalls, 3);
+    Object.assign(process.env, { ESPN_LEAGUE_ID: '456', ESPN_SEASON: '2026', ESPN_SWID: '{test-swid}', ESPN_S2: 'test-private-cookie', SHARED_LEAGUE: 'off' });
+    const separate = await fetch(`${origin}/api/shared?slug=my-league&leagueId=999`);
+    assert.equal(separate.status, 200);
+    const separateText = await separate.text();
+    assert.equal(JSON.parse(separateText).name, 'Test league');
+    assert.ok(!separateText.includes('test-private-cookie'));
+    assert.ok(!separateText.includes('test-swid'));
+    assert.equal(espnCalls, 4);
   } finally {
     for (const name of envNames) {
       if (originalEnv[name] === undefined) delete process.env[name];
