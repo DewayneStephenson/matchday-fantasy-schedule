@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Averages from './Averages.jsx';
+import SharedLeague, { RefreshSharedLeague } from './SharedLeague.jsx';
 
 const STORAGE_KEY = 'matchday-league-v3';
 const COLORS = ['#FF6B3D','#216869','#5C4DFF','#E05252','#F3A712','#8C5EFC','#E8488A','#1479FF','#0D9F6E','#AD5D4E','#3B4CCA','#EF8354','#2E86AB','#A23B72','#3C896D','#DAA520'];
@@ -153,7 +154,7 @@ function RefreshEspn({league,onRefresh,onClose}){
   return <div className="modal-backdrop" onMouseDown={onClose}><div className="refresh-modal" onMouseDown={e=>e.stopPropagation()}><button className="modal-close" onClick={onClose}>×</button><span className="step-label">ESPN LIVE REFRESH</span><h2>Update scores</h2><p>Pull the newest scores and matchup statuses while keeping your predictions. Private leagues require fresh credentials.</p><form className="import-form" onSubmit={submit}><label>SWID</label><input type="password" autoComplete="off" value={form.swid} onChange={e=>setForm({...form,swid:e.target.value})} placeholder="Leave blank for public leagues"/><label>ESPN_S2</label><textarea rows="3" autoComplete="off" value={form.espnS2} onChange={e=>setForm({...form,espnS2:e.target.value})} placeholder="Leave blank for public leagues"/>{error&&<div className="form-error">{error}</div>}<button className="primary-button" disabled={loading}>{loading?'Refreshing…':'Refresh from ESPN'} <span>↻</span></button></form></div></div>
 }
 
-function Dashboard({league,setLeague}){
+function Dashboard({league,setLeague,sharedSlug}){
   const [week,setWeek]=useState(0);const [tab,setTab]=useState('schedule');const [refreshOpen,setRefreshOpen]=useState(false);const [standingsScope,setStandingsScope]=useState('live');const teams=useMemo(()=>Object.fromEntries(league.teams.map(t=>[t.id,t])),[league.teams]);const standings=useMemo(()=>calculateStandings(league,'live'),[league]);const displayedStandings=useMemo(()=>calculateStandings(league,standingsScope),[league,standingsScope]);
   const choose=(key,id,game,scenario=false)=>setLeague(c=>{if(game?.completed&&scenario){const results={...(c.hypotheticalResults||{})},wasSelected=results[key]?.winner===id;results[key]={home:'',away:'',winner:wasSelected?null:id};return{...c,hypotheticalResults:results}}const picks={...c.picks},predictedScores={...(c.predictedScores||{})};if(picks[key]===id)delete picks[key];else picks[key]=id;delete predictedScores[key];return{...c,picks,predictedScores}});
   const updateScore=(key,side,value,game,scenario=false)=>setLeague(c=>{if(game?.completed&&scenario){return{...c,hypotheticalResults:{...(c.hypotheticalResults||{}),[key]:{home:game.homeScore,away:game.awayScore,...(c.hypotheticalResults?.[key]||{}),[side]:value}}}}return{...c,predictedScores:{...(c.predictedScores||{}),[key]:{...(c.predictedScores?.[key]||{}),[side]:value}}}});
@@ -168,7 +169,15 @@ function Dashboard({league,setLeague}){
   {tab==='playoffs'&&<div className="tab-panel"><Bracket league={league} teams={teams} standings={standings} setLeague={setLeague}/></div>}
   {tab==='forecast'&&<div className="tab-panel"><TeamForecast league={league} teams={teams} choose={choose} updateScore={updateScore} resetHypothetical={resetHypothetical}/></div>}
   {tab==='teams'&&<div className="tab-panel"><div className="team-grid">{league.teams.map((t,i)=><article className="team-card" key={t.id} style={{background:t.color,color:textColor(t.color)}}><TeamLogo team={t}/><small>{t.playoffSeed?`ESPN SEED ${t.playoffSeed}`:`TEAM ${String(i+1).padStart(2,'0')}`}</small><strong>{t.name}</strong></article>)}</div></div>}
-  {refreshOpen&&<RefreshEspn league={league} onRefresh={applyRefresh} onClose={()=>setRefreshOpen(false)}/>}</section></main>
+  {refreshOpen&&(sharedSlug?<RefreshSharedLeague slug={sharedSlug} onRefresh={applyRefresh} onClose={()=>setRefreshOpen(false)}/>:<RefreshEspn league={league} onRefresh={applyRefresh} onClose={()=>setRefreshOpen(false)}/>)}</section></main>
 }
 
-export default function App(){const [league,setLeague]=useState(loadLeague);useEffect(()=>localStorage.setItem(STORAGE_KEY,JSON.stringify(league)),[league]);const reset=()=>{if(confirm('Start a new league? Your current season will be removed.')){localStorage.removeItem(STORAGE_KEY);setLeague({...EMPTY})}};const create=(weeks,playoffTeamCount)=>setLeague(c=>({...c,regularSeasonWeeks:weeks,playoffTeamCount,schedule:buildSchedule(c.teams,weeks),picks:{},predictedScores:{},hypotheticalResults:{},playoffPicks:{}}));return <><div className="noise"/><Header active={league.schedule.length>0} onReset={reset}/>{league.schedule.length?<Dashboard league={league} setLeague={setLeague}/>:<Setup league={league} setLeague={setLeague} onCreate={create}/>}</>}
+function LocalApp(){const [league,setLeague]=useState(loadLeague);useEffect(()=>localStorage.setItem(STORAGE_KEY,JSON.stringify(league)),[league]);const reset=()=>{if(confirm('Start a new league? Your current season will be removed.')){localStorage.removeItem(STORAGE_KEY);setLeague({...EMPTY})}};const create=(weeks,playoffTeamCount)=>setLeague(c=>({...c,regularSeasonWeeks:weeks,playoffTeamCount,schedule:buildSchedule(c.teams,weeks),picks:{},predictedScores:{},hypotheticalResults:{},playoffPicks:{}}));return <><div className="noise"/><Header active={league.schedule.length>0} onReset={reset}/>{league.schedule.length?<Dashboard league={league} setLeague={setLeague}/>:<Setup league={league} setLeague={setLeague} onCreate={create}/>}</>}
+
+export default function App() {
+  const segments = window.location.pathname.split('/').filter(Boolean);
+  if (segments.length !== 2 || segments[0] !== 'league') return <LocalApp/>;
+  let slug;
+  try { slug = decodeURIComponent(segments[1]); } catch { slug = ''; }
+  return <><div className="noise"/><Header active={false}/><SharedLeague slug={slug} Dashboard={Dashboard}/></>;
+}

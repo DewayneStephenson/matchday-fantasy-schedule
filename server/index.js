@@ -27,6 +27,7 @@ function espnRateLimit(req, res, next) {
     res.set('Retry-After', String(retryAfter));
     return res.status(429).json({ error: `Too many ESPN requests. Try again in ${retryAfter} seconds.` });
   }
+  if (req.method === 'GET') return next();
   const leagueId = String(req.body?.leagueId || 'unknown');
   const year = String(req.body?.year || 'unknown');
   const cooldownKey = `${ip}:${leagueId}:${year}`;
@@ -120,7 +121,7 @@ function normalizeLeague(data, year) {
   };
 }
 
-app.post('/api/espn/import', espnRateLimit, async (req, res) => {
+async function importLeague(req, res) {
   const { leagueId, year, espnS2 = '', swid = '' } = req.body || {};
   const currentYear = new Date().getFullYear();
   if (!/^\d{1,15}$/.test(String(leagueId || ''))) return res.status(400).json({ error: 'Enter a valid numeric ESPN league ID.' });
@@ -154,6 +155,28 @@ app.post('/api/espn/import', espnRateLimit, async (req, res) => {
     const message = error?.name === 'TimeoutError' ? 'ESPN took too long to respond.' : 'Could not reach ESPN. Try again shortly.';
     return res.status(502).json({ error: message });
   }
+}
+
+app.post('/api/espn/import', espnRateLimit, importLeague);
+
+app.get('/api/shared', (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  const slug = process.env.SHARED_LEAGUE_SLUG || 'my-league';
+  if (process.env.SHARED_LEAGUE_ENABLED !== 'true' || req.query.slug !== slug) {
+    return res.status(404).json({ error: 'This shared league is not available.' });
+  }
+  if (!process.env.SHARED_LEAGUE_ID || !process.env.SHARED_LEAGUE_YEAR) {
+    return res.status(503).json({ error: 'The owner still needs to configure this shared league.' });
+  }
+  next();
+}, espnRateLimit, (req, res) => {
+  // Only the server chooses the league and credentials, never visitor input.
+  return importLeague({ body: {
+    leagueId: process.env.SHARED_LEAGUE_ID,
+    year: process.env.SHARED_LEAGUE_YEAR,
+    swid: process.env.SHARED_LEAGUE_SWID || '',
+    espnS2: process.env.SHARED_LEAGUE_ESPN_S2 || ''
+  } }, res);
 });
 
 app.use((error, _req, res, _next) => {
