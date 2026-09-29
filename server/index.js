@@ -1,4 +1,5 @@
 import express from 'express';
+import { pathToFileURL } from 'node:url';
 
 const app = express();
 const port = Number(process.env.PORT || 8787);
@@ -161,4 +162,9 @@ app.use((error, _req, res, _next) => {
   return res.status(500).json({ error: 'The import server encountered an unexpected error.' });
 });
 
-app.listen(port, () => console.log(`Matchday API listening on http://localhost:${port}`));
+// Listen only when started locally; Vercel invokes the exported app itself.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  app.listen(port, () => console.log(`Matchday API listening on http://localhost:${port}`));
+}
+
+export default app;

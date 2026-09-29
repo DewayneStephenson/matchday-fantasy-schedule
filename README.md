@@ -55,7 +55,7 @@ so ports and request limits can be changed without editing source code.
 `SWID` and `ESPN_S2` provide access to private ESPN Fantasy data and must be
 treated like passwords. Never send them to another person, paste them into
 `.env`, commit them to source control, or include them in screenshots. The app
-sends them to the local API for the current ESPN request and does not save them
+sends them to this app's API for the current ESPN request and does not save them
 to disk or browser storage. ESPN does not offer an official Fantasy OAuth flow,
 so the cookies may need to be copied again after the ESPN session expires.
 
@@ -81,6 +81,31 @@ npm run build
 
 This creates the static frontend in `dist`. ESPN imports still require the
 Node API in `server/index.js`; static files alone cannot import a private league.
+
+## Deploy to Vercel
+
+1. Push this project to a GitHub repository, including the `api` and `server`
+   folders and `vercel.json`.
+2. In Vercel, choose **Add New > Project** and import that repository.
+3. Use the project root as the root directory. The included configuration selects
+   **Vite**, builds with `npm run build`, and serves `dist`. Use Node.js **22.x**.
+4. Click **Deploy**. No environment variables or database are required.
+5. Open `/api/health` on the deployed URL; it should return `{"ok":true}`.
+   Then test an ESPN import and refresh from the website.
+
+Vercel serves the frontend and runs the ESPN API as Node.js functions on the
+same domain. `api/espn/import.js` allows 60 seconds for the ESPN request and
+historical-season fallback. Local development still uses `npm run dev`.
+See [Vercel's Node.js function documentation](https://vercel.com/docs/functions/runtimes/node-js/advanced-node-configuration).
+
+Enter private ESPN credentials in the import form, not in Vercel environment
+variables. Optional `ESPN_RATE_MAX`, `ESPN_RATE_WINDOW_MS`, and
+`ESPN_LEAGUE_COOLDOWN_MS` overrides can be set in Vercel. The in-memory limits
+apply per function instance and reset on cold starts; they are not a shared
+deployment-wide quota.
+
+Saved leagues remain specific to each browser and website address. Data saved
+on localhost does not transfer to the Vercel URL, and users do not share edits.
 
 ## Troubleshooting
 

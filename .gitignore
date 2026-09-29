@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.vercel/
 
 # Local configuration and secrets
 .env
